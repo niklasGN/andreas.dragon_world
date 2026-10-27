@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dragon World</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+<div id="app">
+  <div id="vignette"></div>
+  <div id="flash"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-dragon" class="panel">
+      <div class="hud-row">
+        <div id="hud-icon" class="icon-badge"></div>
+        <div class="hud-title">
+          <div id="hud-name">Dragon</div>
+          <div id="hud-form" class="muted"></div>
+        </div>
+        <div id="hud-level">Lv 1</div>
+      </div>
+      <div class="bar xp"><div id="hud-xp-fill" class="fill"></div><span id="hud-xp-text"></span></div>
+      <div class="bar hp"><div id="hud-hp-fill" class="fill"></div><span id="hud-hp-text"></span></div>
+      <div id="hud-stats" class="muted"></div>
+    </div>
+
+    <div id="hud-right">
+      <div id="hud-region">Dragon Meadow</div>
+      <canvas id="minimap" width="200" height="200"></canvas>
+    </div>
+
+    <div id="inventory" class="panel">
+      <div class="slot" id="slot-broc">
+        <div class="slot-key">1</div>
+        <div class="slot-icon" id="icon-broc"></div>
+        <div class="slot-info">
+          <div class="slot-name">Broccoli <b id="inv-broc-count">0</b></div>
+          <div class="meter"><div id="stomach-broc" class="fill"></div></div>
+          <div class="slot-note" id="stomach-broc-label">Hungry</div>
+        </div>
+      </div>
+      <div class="slot" id="slot-candy">
+        <div class="slot-key">2</div>
+        <div class="slot-icon" id="icon-candy"></div>
+        <div class="slot-info">
+          <div class="slot-name">Candy <b id="inv-candy-count">0</b></div>
+          <div class="meter"><div id="stomach-candy" class="fill"></div></div>
+          <div class="slot-note" id="stomach-candy-label">Craving</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="prompt"></div>
+    <div id="toasts"></div>
+  </div>
+
+  <div id="labels"></div>
+  <div id="floaters"></div>
+  <div id="banner" class="hidden"><h1></h1><p></p></div>
+
+  <!-- COMBAT -->
+  <div id="combat" class="hidden">
+    <div class="c-top">
+      <div class="c-card ally panel">
+        <div class="c-name"><span id="c-ally-name"></span><b id="c-ally-level"></b></div>
+        <div class="bar hp"><div id="c-ally-hp" class="fill"></div><span id="c-ally-hp-text"></span></div>
+        <div class="bar en"><div id="c-ally-en" class="fill"></div><span>Focus</span></div>
+        <div class="chips" id="c-ally-status"></div>
+      </div>
+      <div id="c-turn">Battle!</div>
+      <div class="c-card enemy panel">
+        <div class="c-name"><span id="c-enemy-name"></span><b id="c-enemy-level"></b></div>
+        <div class="bar hp"><div id="c-enemy-hp" class="fill"></div><span id="c-enemy-hp-text"></span></div>
+        <div class="muted" id="c-enemy-info"></div>
+        <div class="chips" id="c-enemy-status"></div>
+      </div>
+    </div>
+    <div class="c-bottom">
+      <div id="c-log" class="panel"></div>
+      <div id="c-actions" class="panel">
+        <button data-action="strike"><span class="k">1</span><span class="t">Claw &amp; Bite</span><span class="d">Reliable, builds focus</span></button>
+        <button data-action="breath"><span class="k">2</span><span class="t" id="c-breath-name">Breath</span><span class="d">Costs 30 focus</span></button>
+        <button data-action="guard"><span class="k">3</span><span class="t">Guard</span><span class="d">Halve damage, +focus</span></button>
+        <button data-action="ultimate"><span class="k">4</span><span class="t" id="c-ult-name">Ultimate</span><span class="d" id="c-ult-desc">Awaken at level 100</span></button>
+        <button data-action="flee"><span class="k">5</span><span class="t">Flee</span><span class="d">Speed decides</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREENS -->
+  <div id="screens">
+    <div id="screen-title" class="screen">
+      <div class="title-block">
+        <div class="eyebrow">A world of elements and appetites</div>
+        <h1>DRAGON <span>WORLD</span></h1>
+        <div class="menu">
+          <button id="btn-continue" class="btn primary">Continue</button>
+          <button id="btn-new" class="btn primary">New Game</button>
+          <button id="btn-scores" class="btn">Hall of Legends</button>
+          <button id="btn-controls" class="btn">How to Play</button>
+        </div>
+        <div id="title-best" class="muted"></div>
+      </div>
+    </div>
+
+    <div id="screen-element" class="screen">
+      <h2>Choose your element</h2>
+      <p class="lead">Reach level 100 and your dragon awakens with a legendary form.</p>
+      <div id="element-cards" class="cards"></div>
+      <div class="row"><button id="btn-element-back" class="btn">Back</button></div>
+    </div>
+
+    <div id="screen-body" class="screen">
+      <h2>Choose your dragon's form</h2>
+      <p class="lead" id="body-lead"></p>
+      <div id="body-cards" class="cards two"></div>
+      <div class="row">
+        <label class="name-field">Name <input id="dragon-name" maxlength="16" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="row">
+        <button id="btn-body-back" class="btn">Back</button>
+        <button id="btn-begin" class="btn primary" disabled>Hatch your dragon</button>
+      </div>
+    </div>
+
+    <div id="screen-pause" class="screen dim">
+      <div class="panel big">
+        <h2>Paused</h2>
+        <div class="menu">
+          <button id="btn-resume" class="btn primary">Resume</button>
+          <button id="btn-save" class="btn">Save Game</button>
+          <button id="btn-controls2" class="btn">Controls</button>
+          <button id="btn-mute" class="btn">Sound: On</button>
+          <button id="btn-retire" class="btn danger">Retire &amp; Record Score</button>
+          <button id="btn-quit" class="btn">Save &amp; Quit to Title</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-results" class="screen dim">
+      <div class="panel big">
+        <h2 id="res-title"></h2>
+        <div id="res-body" class="res-body"></div>
+        <div class="row"><button id="btn-res-continue" class="btn primary">Continue</button></div>
+      </div>
+    </div>
+
+    <div id="screen-gameover" class="screen blood">
+      <div class="panel big">
+        <h2 id="over-title">Devoured</h2>
+        <div id="over-body" class="res-body"></div>
+        <div class="row">
+          <button id="btn-over-again" class="btn primary">New Game</button>
+          <button id="btn-over-title" class="btn">Title</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-scores" class="screen dim">
+      <div class="panel big">
+        <h2>Hall of Legends</h2>
+        <div id="score-list"></div>
+        <div class="row"><button id="btn-scores-back" class="btn">Back</button></div>
+      </div>
+    </div>
+
+    <div id="screen-controls" class="screen dim">
+      <div class="panel big">
+        <h2>How to Play</h2>
+        <div class="help">
+          <div><b>W A S D</b> move &nbsp; <b>Shift</b> sprint &nbsp; <b>Space</b> jump &nbsp; <b>Mouse</b> look</div>
+          <div><b>E</b> pick up broccoli and candy &nbsp; <b>1</b> feed broccoli &nbsp; <b>2</b> feed candy</div>
+          <div><b>Esc</b> pause &nbsp; <b>M</b> mute &nbsp; <b>1-5</b> battle actions</div>
+          <hr>
+          <p><b>Goal:</b> raise your dragon to the highest level you can. At level 100 it awakens as Ice (water), Metal (earth) or Lightning (fire).</p>
+          <p><b>Candy</b> gives XP and speed, but gorge on it and your dragon suffers a sugar crash and loses levels.</p>
+          <p><b>Broccoli</b> builds health and strength, but feed it too much and the dragon will eat <i>you</i>.</p>
+          <p>The meters beside each food show how stuffed your dragon is. The fuller it gets, the riskier the next bite. They drain over time.</p>
+          <p>Wild dragons roam the land. Beat them in turn-based battles to gain XP. Water beats fire, fire beats earth, earth beats water.</p>
+        </div>
+        <div class="row"><button id="btn-controls-back" class="btn primary">Back</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <h1>DRAGON <span>WORLD</span></h1>
+    <div id="load-bar"><div id="load-bar-fill"></div></div>
+    <div id="load-text">Starting up</div>
+    <div id="load-error" class="hidden"></div>
+  </div>
+  <div id="fade"></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
